@@ -1,14 +1,15 @@
 SRCDIR = src
 
-# DATASET = datasets/small.csv
-DATASET = datasets/dataset_train.csv
+DATASET = datasets/small.csv
+# DATASET = datasets/dataset_train.csv
 
 PKGS = matplotlib pandas numpy seaborn
 
 .SILENT:
 
 all: check
-	# printf "\x1B[32m Model Trained!\x1B[0m\n"
+	printf "\x1B[32m Packages Ready!\x1B[0m\n"
+	printf "\x1B[30m  Usage:\x1B[33m make {[d], [h,s,p], [t,e]}\x1B[0m\n"
 
 check:
 	for pkg in $(PKGS); do \
@@ -29,6 +30,12 @@ s:
 p:
 	python3 $(SRCDIR)/visualize/pair_plot.py $(DATASET)
 
+t:
+	python3 $(SRCDIR)/model/logreg_train.py $(DATASET)
+
+e:
+	python3 $(SRCDIR)/model/logreg_predict.py $(DATASET) thetas.npy
+
 clean:
 	# rm -rf abc.txt
 
@@ -37,7 +44,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "first"
+	git commit -m "train update"
 	git push
 
 re: fclean all
