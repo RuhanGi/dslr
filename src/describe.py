@@ -75,13 +75,14 @@ def extractInfo(df):
 		row_headers = ["Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max"]
 		column_headers = df.select_dtypes(include=['float64']).columns
 		stats = pd.DataFrame(df, index=row_headers, columns=column_headers)
-
+		
 		for col in stats.columns:
 			stats.loc["Count", col], stats.loc["Mean", col] = mean(df[col])
 			stats.loc["Std", col] = std(df[col], stats.loc["Count", col], stats.loc["Mean", col])
 			stats.loc["Min", col], stats.loc["25%", col], stats.loc["50%", col], stats.loc["75%", col], \
 				  stats.loc["Max", col] = quartiles(df[col], stats.loc["Count", col])
 
+		# TODO BONUS add more fields
 		# stats.rename(columns={'Defense Against the Dark Arts': 'Dark Arts'}, inplace=True)
 		# stats.rename(columns={'Care of Magical Creatures': 'Magical Creatures'}, inplace=True)
 		return stats

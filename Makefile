@@ -1,7 +1,7 @@
 SRCDIR = src
 
-DATASET = datasets/small.csv
-# DATASET = datasets/dataset_train.csv
+# DATASET = datasets/small.csv
+DATASET = datasets/dataset_train.csv
 
 PKGS = matplotlib pandas numpy seaborn
 
