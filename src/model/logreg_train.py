@@ -37,33 +37,44 @@ def cleanData(df):
 		print(RED + "Error: " + str(e) + RESET)
 		sys.exit(1)
 
-def epoch(ndata, classes, th):
+def softmax(ndata, th):
+	z = np.dot(ndata, th.T)
+	
+	exp_scores = np.exp(z - np.max(z, axis=1, keepdims=True)) 
+	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+	
+	return probs
+
+def epoch(ndata, y, th):
 	learningRate = 0.05
 	m = len(ndata)
-	z = th[0] + np.dot(ndata, th[1:])
-	h = 1 / (1 + np.exp(z))
-	th[0] -= learningRate / m * np.sum(h - classes)
-	th[1:] -= learningRate / m * (diff @ ndata)
-	return th
+	grad = np.zeros_like(th)
+	probs = softmax(ndata, th)
 
-def trainModel(data, headers, n):
+	classes = list(th.index)
+	for i in range(m):
+		for c in range(len(classes)):
+			grad[c, :] += (probs[i, c] - (1 if y[i] == classes[c] else 0)) * ndata[i]
+	return th - grad / m
+
+def trainModel(data, y, headers, n):
 	try:
-		houses = np.unique(headers)
-		numclasses = len(houses)
-		th = np.zeros((n, numclasses))
+		classes = np.unique(y)
+		th = pd.DataFrame(np.zeros((len(classes), n)), columns=['Bias'] + list(headers), index=classes)
 		mins = np.min(data, axis=0)
 		maxs = np.max(data, axis=0)
 		ranges = maxs - mins
 		ranges[ranges == 0] = 1
 		ndata = (data - mins) / ranges
-		maxiterations = 1000000
+		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
+		maxiterations = 10
 		tolerance = 10**-12
 		
-		# for i in range(maxiterations):
-		# 	prvth = th.copy()
-		# 	th = epoch(ndata, headers, th)
-		# 	if i % 1000 == 0 and np.all(np.abs(th - prvth) < tolerance):
-		# 		break
+		for i in range(maxiterations):
+			prvth = th.copy()
+			th = epoch(ndata, y, th)
+			if i % 1000 == 0 and np.all(np.abs(th.values - prvth.values) < tolerance):
+				break
 
 		# ? USE SOFTMAX FOR DETECTION
 		
@@ -86,10 +97,10 @@ def main():
 	
 	df = loadData(sys.argv[1])
 	df = cleanData(df)
-	data, headers = df.iloc[:, :-1].to_numpy(), df.iloc[:,-1].to_numpy()
-	th = trainModel(data, headers, df.shape[1])
+	data, y = df.iloc[:, :-1].to_numpy(), df.iloc[:,-1].to_numpy()
+	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1])
 	print(th)
-	# np.save("thetas.npy", {"theta": th, "headers": headers})
+	# np.save("thetas.npy", {"theta": th, "headers": df.columns.to_numpy()})
 
 if __name__ == "__main__":
 	main()
