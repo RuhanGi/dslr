@@ -37,10 +37,10 @@ e:
 	python3 $(SRCDIR)/model/logreg_predict.py $(DATASET) thetas.npy
 
 clean:
-	# rm -rf abc.txt
+	# rm -rf 
 
 fclean: clean
-	# rm -rf abc.txt
+	rm -rf thetas.csv
 
 gpush: fclean
 	git add .

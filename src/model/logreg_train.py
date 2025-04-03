@@ -75,12 +75,6 @@ def trainModel(data, y, headers, n):
 			th = epoch(ndata, y, th)
 			if i % 1000 == 0 and np.all(np.abs(th.values - prvth.values) < tolerance):
 				break
-
-		# ? USE SOFTMAX FOR DETECTION
-		
-		# for i in range(n-1):
-		# 	th[i+1] *= ranges[n-1] / ranges[i]
-		# th[0] = mins[-1] + th[0] * ranges[-1] - np.sum(th[1:] * mins[:-1])
 		return th
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)
@@ -100,7 +94,7 @@ def main():
 	data, y = df.iloc[:, :-1].to_numpy(), df.iloc[:,-1].to_numpy()
 	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1])
 	print(th)
-	# np.save("thetas.npy", {"theta": th, "headers": df.columns.to_numpy()})
+	th.to_csv("thetas.csv")
 
 if __name__ == "__main__":
 	main()
