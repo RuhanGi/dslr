@@ -34,7 +34,7 @@ t:
 	python3 $(SRCDIR)/model/logreg_train.py $(DATASET)
 
 e:
-	python3 $(SRCDIR)/model/logreg_predict.py $(DATASET) thetas.npy
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/small.csv thetas.csv
 
 clean:
 	# rm -rf 
@@ -44,7 +44,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "train update"
+	git commit -m "estimation"
 	git push
 
 re: fclean all

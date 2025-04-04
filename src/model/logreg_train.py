@@ -67,14 +67,16 @@ def trainModel(data, y, headers, n):
 		ranges[ranges == 0] = 1
 		ndata = (data - mins) / ranges
 		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
-		maxiterations = 10
-		tolerance = 10**-12
+		maxiterations = 10000
+		tolerance = 10**-8
 		
 		for i in range(maxiterations):
 			prvth = th.copy()
 			th = epoch(ndata, y, th)
 			if i % 1000 == 0 and np.all(np.abs(th.values - prvth.values) < tolerance):
 				break
+		th.loc["mins"] = np.insert(mins, 0, 0)
+		th.loc["ranges"] = np.insert(ranges, 0, 1) 
 		return th
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)

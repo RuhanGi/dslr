@@ -1,61 +1,76 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import sys
-import csv
+
+from sklearn.metrics import accuracy_score, classification_report
 
 RED = "\033[91m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
 BLUE = "\033[94m"
-PURPLE = "\033[95m"
-CYAN = "\033[96m"
-GRAY = "\033[97m"
-BLACK = "\033[98m"
 RESET = "\033[0m"
 
-def load():
+def load_thetas(filename):
 	try:
-		return pd.read_csv("thetas.csv", index_col=0)
-	except:
-		print(RED + "No properly trained file found!" + RESET)
+		return pd.read_csv(filename, index_col=0)
+	except FileNotFoundError:
+		print(RED + f"Error: {filename} not found!" + RESET)
+		sys.exit(1)
 
-def get(name):
+def load_test_data(filename):
 	try:
-		return float(input(BLUE + name + ": " + YELLOW))
-	except:
-		print(RED + "Input a Number!" + RESET)
-		return get(name)
+		return pd.read_csv(filename, index_col=0)
+	except FileNotFoundError:
+		print(RED + f"Error: {filename} not found!" + RESET)
+		sys.exit(1)
 
 def softmax(z):
-	exp_scores = np.exp(z - np.max(z, axis=1, keepdims=True)) 
-	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
-	return probs
+	exp_scores = np.exp(z - np.max(z, axis=1, keepdims=True))
+	return exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
 
-def predict_class(ndata, th):
+def predict_classes(ndata, th):
 	z = np.dot(ndata, th.T)
 	probs = softmax(z)
-	predicted_class_index = np.argmax(probs)
-	return predicted_class_index, probs[0][predicted_class_index]
+	predictions = np.argmax(probs, axis=1)
+	return predictions
 
 def main():
-	th = load()
-	headers = th.columns[1:]
-	
-	# Prepare the input vector for prediction
-	n = len(headers)  # Number of features
-	ndata = np.ones((1, n + 1))  # Adding bias term (1 for bias)
-	
-	# Get input for each feature
-	for i, header in enumerate(headers):
-		ndata[0, i + 1] = get(header)
-	
-	# Predict the class
-	predicted_class_index, probability = predict_class(ndata, th)
-	
-	# Display the result
-	print(GREEN + f"Predicted Class: {th.index[predicted_class_index]} with Probability: {probability:.4f}" + RESET)
+	if len(sys.argv) != 3:
+		print(RED + "Usage: python estimate.py dataset_test.csv thetas.csv" + RESET)
+		sys.exit(1)
 
+	th = load_thetas(sys.argv[2])
+
+	mins = th.loc["mins"].values[1:]
+	ranges = th.loc["ranges"].values[1:]
+	th = th.drop(index=["mins", "ranges"])
+
+	test_data = load_test_data(sys.argv[1])
+	headers = th.columns[1:]
+	missing_cols = set(headers) - set(test_data.columns)
+	if missing_cols:
+		print(RED + f"Error: Missing columns in dataset_test.csv: {missing_cols}" + RESET)
+		sys.exit(1)
+
+	data = test_data[headers].to_numpy()
+	ndata = (data - mins) / ranges
+	ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
+
+	predicted_indices = predict_classes(ndata, th)
+	house_labels = th.index[predicted_indices]
+
+	predictions_df = pd.DataFrame({
+		"Index": test_data.index,
+		"Hogwarts House": house_labels
+	})
+
+	predictions_df.to_csv("houses.csv", index=False)
+	if "Hogwarts House" in test_data.columns:
+		actual_labels = test_data["Hogwarts House"].values
+		accuracy = accuracy_score(actual_labels, house_labels)
+		report = classification_report(actual_labels, house_labels, target_names=th.index)
+
+		print(GREEN + f"\nModel Evaluation:\nAccuracy: {accuracy:.4f}\n" + RESET)
 
 if __name__ == "__main__":
 	main()
