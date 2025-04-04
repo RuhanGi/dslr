@@ -37,7 +37,7 @@ e:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/small.csv thetas.csv
 
 clean:
-	# rm -rf 
+	rm -rf houses.csv
 
 fclean: clean
 	rm -rf thetas.csv
