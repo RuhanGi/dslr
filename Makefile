@@ -33,8 +33,14 @@ p:
 t:
 	python3 $(SRCDIR)/model/logreg_train.py $(DATASET)
 
+t1:
+	python3 $(SRCDIR)/model/logreg_train.py datasets/ex_train.csv
+
 e:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/small.csv thetas.csv
+
+e1:
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/ex_test.csv thetas.csv
 
 clean:
 	rm -rf houses.csv

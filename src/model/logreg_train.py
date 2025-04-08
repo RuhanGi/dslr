@@ -30,8 +30,7 @@ def cleanData(df):
 		df.drop_duplicates(inplace = True)
 		
 		# TODO check if linear variables affect anything
-		# courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
-
+		# courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
 		courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
 		df = df[courses + ['Hogwarts House']]
 		return df
