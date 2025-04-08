@@ -28,9 +28,11 @@ def cleanData(df):
 		float_cols = df.select_dtypes(include=['float64'])
 		df.dropna(inplace=True, subset=float_cols.columns)
 		df.drop_duplicates(inplace = True)
-		# courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
+		
 		# TODO check if linear variables affect anything
-		courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
+		# courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
+
+		courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
 		df = df[courses + ['Hogwarts House']]
 		return df
 	except Exception as e:
@@ -39,44 +41,49 @@ def cleanData(df):
 
 def softmax(ndata, th):
 	z = np.dot(ndata, th.T)
-	
 	exp_scores = np.exp(z - np.max(z, axis=1, keepdims=True)) 
 	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
-	
 	return probs
 
 def epoch(ndata, y, th):
-	learningRate = 0.05
+	learningRate = 0.3
 	m = len(ndata)
-	grad = np.zeros_like(th)
 	probs = softmax(ndata, th)
 
 	classes = list(th.index)
-	for i in range(m):
-		for c in range(len(classes)):
-			grad[c, :] += (probs[i, c] - (1 if y[i] == classes[c] else 0)) * ndata[i]
-	return th - grad / m
+	y_onehot = np.zeros_like(probs)
+	for i, label in enumerate(y):
+		y_onehot[i, classes.index(label)] = 1
+	grad = np.dot((probs - y_onehot).T, ndata)
+	return th - learningRate * grad / m
 
 def trainModel(data, y, headers, n):
 	try:
 		classes = np.unique(y)
 		th = pd.DataFrame(np.zeros((len(classes), n)), columns=['Bias'] + list(headers), index=classes)
+		
 		mins = np.min(data, axis=0)
 		maxs = np.max(data, axis=0)
 		ranges = maxs - mins
 		ranges[ranges == 0] = 1
 		ndata = (data - mins) / ranges
 		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
-		maxiterations = 10000
-		tolerance = 10**-8
-		
+	
+		maxiterations = 20000
+		tolerance = 10**-9
 		for i in range(maxiterations):
 			prvth = th.copy()
 			th = epoch(ndata, y, th)
 			if i % 1000 == 0 and np.all(np.abs(th.values - prvth.values) < tolerance):
 				break
-		th.loc["mins"] = np.insert(mins, 0, 0)
-		th.loc["ranges"] = np.insert(ranges, 0, 1) 
+
+		for i in range(th.shape[0]):
+			weights = th.iloc[i, 1:].values
+			denorm_weights = weights / ranges
+			denorm_bias = th.iloc[i, 0] - np.sum(weights * mins / ranges)
+			th.iloc[i, 1:] = denorm_weights
+			th.iloc[i, 0] = denorm_bias
+
 		return th
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)
@@ -86,6 +93,7 @@ def trainModel(data, y, headers, n):
 		# TODO other optimization aglorithms:
 		# TODO - Batch GD/mini-batch GD
 		# TODO - adagrad/adadelta/adam
+
 def main():
 	if len(sys.argv) != 2:
 		print(RED + "Pass Training Data!" + RESET)

@@ -44,7 +44,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "estimation"
+	git commit -m "denormalization"
 	git push
 
 re: fclean all

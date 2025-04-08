@@ -2,8 +2,6 @@ import pandas as pd
 import numpy as np
 import sys
 
-from sklearn.metrics import accuracy_score, classification_report
-
 RED = "\033[91m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
@@ -39,13 +37,9 @@ def main():
 		print(RED + "Usage: python estimate.py dataset_test.csv thetas.csv" + RESET)
 		sys.exit(1)
 
+	test_data = load_test_data(sys.argv[1])
 	th = load_thetas(sys.argv[2])
 
-	mins = th.loc["mins"].values[1:]
-	ranges = th.loc["ranges"].values[1:]
-	th = th.drop(index=["mins", "ranges"])
-
-	test_data = load_test_data(sys.argv[1])
 	headers = th.columns[1:]
 	missing_cols = set(headers) - set(test_data.columns)
 	if missing_cols:
@@ -53,10 +47,10 @@ def main():
 		sys.exit(1)
 
 	data = test_data[headers].to_numpy()
-	ndata = (data - mins) / ranges
-	ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
+	data = np.hstack((np.ones((data.shape[0], 1)), data))
+	predicted_indices = predict_classes(data, th)
 
-	predicted_indices = predict_classes(ndata, th)
+
 	house_labels = th.index[predicted_indices]
 
 	predictions_df = pd.DataFrame({
@@ -67,10 +61,9 @@ def main():
 	predictions_df.to_csv("houses.csv", index=False)
 	if "Hogwarts House" in test_data.columns:
 		actual_labels = test_data["Hogwarts House"].values
-		accuracy = accuracy_score(actual_labels, house_labels)
-		report = classification_report(actual_labels, house_labels, target_names=th.index)
+		accuracy = np.mean(actual_labels == house_labels) * 100
 
-		print(GREEN + f"\nModel Evaluation:\nAccuracy: {accuracy:.4f}\n" + RESET)
+		print(GREEN + f"Model Evaluation:\nAccuracy: {accuracy:.4f}%" + RESET)
 
 if __name__ == "__main__":
 	main()
