@@ -30,6 +30,9 @@ s:
 p:
 	python3 $(SRCDIR)/visualize/pair_plot.py $(DATASET)
 
+b:
+	python3 $(SRCDIR)/visualize/box_plot.py $(DATASET)
+
 t:
 	python3 $(SRCDIR)/model/logreg_train.py $(DATASET)
 
@@ -43,14 +46,14 @@ e1:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/ex_test.csv thetas.csv
 
 clean:
-	rm -rf houses.csv
+	rm -rf houses.csv pairplot.png
 
 fclean: clean
 	rm -rf thetas.csv
 
 gpush: fclean
 	git add .
-	git commit -m "denormalization"
+	git commit -m "more describe"
 	git push
 
 re: fclean all

@@ -70,9 +70,27 @@ def quartiles(column, c):
 	q3 = column.iloc[p] + r * (column.iloc[p+1] - column.iloc[p])
 	return column.iloc[0], q1, q2, q3, column.iloc[-1]
 
+def skew(column, m, c, s):
+	sums = 0
+	sumk = 0
+	for a in column:
+		sums += ((a - m)/s)**3
+		sumk += ((a - m)/s)**4
+	return sums / c, sumk / c
+
+def countOutliers(column, q1, q3):
+	lowest = q1 - 1.5 * (q3 - q1)
+	highest = q3 + 1.5 * (q3 - q1)
+	outlies = 0
+	for a in column:
+		if (a < lowest or a > highest):
+			outlies += 1
+	return outlies
+
 def extractInfo(df):
 	try:
-		row_headers = ["Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max"]
+		row_headers = ["Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max",
+				  "IQR", "Range", "Skewness", "Kurtosis", "#Outliers"]
 		column_headers = df.select_dtypes(include=['float64']).columns
 		stats = pd.DataFrame(df, index=row_headers, columns=column_headers)
 		
@@ -80,11 +98,16 @@ def extractInfo(df):
 			stats.loc["Count", col], stats.loc["Mean", col] = mean(df[col])
 			stats.loc["Std", col] = std(df[col], stats.loc["Count", col], stats.loc["Mean", col])
 			stats.loc["Min", col], stats.loc["25%", col], stats.loc["50%", col], stats.loc["75%", col], \
-				  stats.loc["Max", col] = quartiles(df[col], stats.loc["Count", col])
+					stats.loc["Max", col] = quartiles(df[col], stats.loc["Count", col])
+			stats.loc["IQR", col] = stats.loc["75%", col] - stats.loc["25%", col]
+			stats.loc["Range", col] = stats.loc["Max", col] - stats.loc["Min", col]
+			stats.loc["Skewness", col], stats.loc["Kurtosis", col] = skew(df[col], \
+					stats.loc["Mean", col], stats.loc["Std", col], stats.loc["Count", col])
+			stats.loc["#Outliers", col] = countOutliers(df[col], stats.loc["25%", col], stats.loc["75%", col])
 
-		# TODO BONUS add more fields
-		# stats.rename(columns={'Defense Against the Dark Arts': 'Dark Arts'}, inplace=True)
-		# stats.rename(columns={'Care of Magical Creatures': 'Magical Creatures'}, inplace=True)
+		stats.rename(columns={'Defense Against the Dark Arts': 'Dark Arts'}, inplace=True)
+		stats.rename(columns={'Care of Magical Creatures': 'Creatures'}, inplace=True)
+		stats.rename(columns={'History of Magic': 'History'}, inplace=True)
 		return stats
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)
@@ -96,15 +119,9 @@ def main():
 		sys.exit(1)
 	
 	df = loadData(sys.argv[1])
-	# print(YELLOW)
-	# print(df.info())
-
 	df = cleanData(df)
-	# print(GREEN)
-	print(df.info())
-
-	# pd.options.display.float_format = '{:.6f}'.format
 	stats = extractInfo(df)
+	pd.options.display.float_format = '{:.6f}'.format
 	print(stats)
 
 if __name__ == "__main__":
