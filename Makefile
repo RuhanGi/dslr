@@ -45,6 +45,9 @@ e:
 e1:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/ex_test.csv thetas.csv
 
+gen:
+	python3 datasets/split.py $(DATASET)
+
 clean:
 	rm -rf houses.csv pairplot.png
 
@@ -53,7 +56,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "more describe"
+	git commit -m "minibatch + stochastic"
 	git push
 
 re: fclean all

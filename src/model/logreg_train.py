@@ -44,7 +44,29 @@ def softmax(ndata, th):
 	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
 	return probs
 
-def epoch(ndata, y, th):
+# * Mini-Batch GD
+def minibatchEpoch(ndata, y, th):
+	learningRate = 0.3
+	batch_size = 32
+	m = len(ndata)
+	num_batches = (m + batch_size-1) // batch_size
+	classes = list(th.index)
+
+	for i in range(num_batches):
+		start = i * batch_size
+		end = min((i + 1) * batch_size, m)
+		X_batch = ndata[start:end]
+		y_batch = y[start:end]
+		probs = softmax(X_batch, th)
+		y_onehot = np.zeros_like(probs)
+		for i, label in enumerate(y_batch):
+			y_onehot[i, classes.index(label)] = 1
+		grad = np.dot((probs - y_onehot).T, X_batch)
+		th = th - learningRate * grad / (end-start)
+	return th
+
+# * Batch GD
+def batchEpoch(ndata, y, th):
 	learningRate = 0.3
 	m = len(ndata)
 	probs = softmax(ndata, th)
@@ -55,6 +77,20 @@ def epoch(ndata, y, th):
 		y_onehot[i, classes.index(label)] = 1
 	grad = np.dot((probs - y_onehot).T, ndata)
 	return th - learningRate * grad / m
+
+# * Stochastic GD
+def stochEpoch(ndata, y, th):
+	learningRate = 0.3
+	classes = list(th.index)
+	m = len(ndata)
+
+	for i in range(m):
+		x_i = ndata[i].reshape(1, -1)
+		probs = softmax(x_i, th)
+		y_onehot = np.zeros_like(probs)
+		y_onehot[0, classes.index(y[i])] = 1
+		th = th - learningRate * np.dot((probs - y_onehot).T, x_i)
+	return th
 
 def trainModel(data, y, headers, n):
 	try:
@@ -67,15 +103,20 @@ def trainModel(data, y, headers, n):
 		ranges[ranges == 0] = 1
 		ndata = (data - mins) / ranges
 		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
-	
-		maxiterations = 20000
-		tolerance = 10**-9
+
+		maxiterations = 10000
+		tolerance = 10**-3
 		for i in range(maxiterations):
 			prvth = th.copy()
-			th = epoch(ndata, y, th)
-			if i % 1000 == 0 and np.all(np.abs(th.values - prvth.values) < tolerance):
+			th = minibatchEpoch(ndata, y, th)
+			print(f"\rEpoch [{i}/{maxiterations}]",end="")
+			if i % 100 == 0 and np.all(np.abs(th.values - prvth.values) < tolerance):
+				print(f"\rEpoch [{i}/{maxiterations}]")
 				break
-
+		print(GREEN + "\rModel Trained!" + (" " * 30) + RESET)
+		
+		# TODO - adagrad/adadelta/adam
+		
 		for i in range(th.shape[0]):
 			weights = th.iloc[i, 1:].values
 			denorm_weights = weights / ranges
@@ -87,11 +128,6 @@ def trainModel(data, y, headers, n):
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)
 		sys.exit(1)
-
-		# TODO BONUS implement a stochastic gradient descent
-		# TODO other optimization aglorithms:
-		# TODO - Batch GD/mini-batch GD
-		# TODO - adagrad/adadelta/adam
 
 def main():
 	if len(sys.argv) != 2:
