@@ -45,6 +45,9 @@ e:
 e1:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/ex_test.csv thetas.csv
 
+a:
+	python3 $(SRCDIR)/model/ada_train.py datasets/ex_train.csv
+
 gen:
 	python3 datasets/split.py $(DATASET)
 
@@ -56,7 +59,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "minibatch + stochastic"
+	git commit -m "adaptive"
 	git push
 
 re: fclean all

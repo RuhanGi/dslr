@@ -44,27 +44,6 @@ def softmax(ndata, th):
 	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
 	return probs
 
-# * Mini-Batch GD
-def minibatchEpoch(ndata, y, th):
-	learningRate = 0.3
-	batch_size = 32
-	m = len(ndata)
-	num_batches = (m + batch_size-1) // batch_size
-	classes = list(th.index)
-
-	for i in range(num_batches):
-		start = i * batch_size
-		end = min((i + 1) * batch_size, m)
-		X_batch = ndata[start:end]
-		y_batch = y[start:end]
-		probs = softmax(X_batch, th)
-		y_onehot = np.zeros_like(probs)
-		for i, label in enumerate(y_batch):
-			y_onehot[i, classes.index(label)] = 1
-		grad = np.dot((probs - y_onehot).T, X_batch)
-		th = th - learningRate * grad / (end-start)
-	return th
-
 # * Batch GD
 def batchEpoch(ndata, y, th):
 	learningRate = 0.3
@@ -78,19 +57,60 @@ def batchEpoch(ndata, y, th):
 	grad = np.dot((probs - y_onehot).T, ndata)
 	return th - learningRate * grad / m
 
-# * Stochastic GD
-def stochEpoch(ndata, y, th):
-	learningRate = 0.5
-	classes = list(th.index)
-	m = len(ndata)
 
-	for i in range(m):
-		x_i = ndata[i].reshape(1, -1)
-		probs = softmax(x_i, th)
-		y_onehot = np.zeros_like(probs)
-		y_onehot[0, classes.index(y[i])] = 1
-		th = th - learningRate * np.dot((probs - y_onehot).T, x_i)
-	return th
+# TODO - adagrad/adadelta/adam
+
+def adagradEpoch(ndata, y, th, cache):
+	m = len(ndata)
+	probs = softmax(ndata, th)
+
+	classes = list(th.index)
+	y_onehot = np.zeros_like(probs)
+	for i, label in enumerate(y):
+		y_onehot[i, classes.index(label)] = 1
+	grad = np.dot((probs - y_onehot).T, ndata) / m
+
+	cache += grad**2
+	epsilon = 10**-8
+	learningRate = 0.3 / (np.sqrt(cache) + epsilon)
+
+	return th - learningRate * grad, cache
+
+def rmspropEpoch(ndata, y, th, cache):
+	m = len(ndata)
+	probs = softmax(ndata, th)
+
+	classes = list(th.index)
+	y_onehot = np.zeros_like(probs)
+	for i, label in enumerate(y):
+		y_onehot[i, classes.index(label)] = 1
+	grad = np.dot((probs - y_onehot).T, ndata) / m
+
+	decay = 0.95
+	cache = cache * decay + (1-decay) * grad**2
+	epsilon = 10**-8
+	learningRate = 0.05 / (np.sqrt(cache) + epsilon)
+
+	return th - learningRate * grad, cache
+
+def adamEpoch(ndata, y, th, momentum, velocity, t):
+	m = len(ndata)
+	probs = softmax(ndata, th)
+
+	classes = list(th.index)
+	y_onehot = np.zeros_like(probs)
+	for i, label in enumerate(y):
+		y_onehot[i, classes.index(label)] = 1
+	grad = np.dot((probs - y_onehot).T, ndata) / m
+
+	decay1, decay2 = 0.9, 0.99
+	momentum = decay1 * momentum + (1-decay1) * grad
+	velocity = decay2 * velocity + (1-decay2) * grad**2
+	epsilon = 10**-8
+	learningRate = 0.001 / (np.sqrt(velocity / (1-decay2**t)) + epsilon)
+
+	return th - learningRate * (momentum / (1-decay1**t)), momentum, velocity
+
 
 def trainModel(data, y, headers, n):
 	try:
@@ -106,17 +126,18 @@ def trainModel(data, y, headers, n):
 
 		maxiterations = 10000
 		tolerance = 10**-4
-		for i in range(maxiterations):
+		momentum = np.zeros_like(th.values)
+		velocity = np.zeros_like(th.values)
+		for t in range(1, maxiterations+1):
 			prvth = th.copy()
-			th = minibatchEpoch(ndata, y, th)
+			# th, velocity = rmspropEpoch(ndata, y, th, velocity)
+			th, momentum, velocity = adamEpoch(ndata, y, th, momentum, velocity, t)
 			maxDiff = np.max(np.abs(th.values-prvth.values))
-			print(f"\rEpoch [{i}/{maxiterations}]: {maxDiff:.6f}",end="")
-			if i % 100 == 0 and maxDiff < tolerance:
-				print(f"\rEpoch [{i}/{maxiterations}]")
+			print(f"\rEpoch [{t}/{maxiterations}]: {maxDiff:.6f}",end="")
+			if maxDiff < tolerance:
+				print(f"\rEpoch [{t}/{maxiterations}]")
 				break
 		print(GREEN + "\rModel Trained!" + (" " * 30) + RESET)
-		
-		# TODO - adagrad/adadelta/adam
 		
 		for i in range(th.shape[0]):
 			weights = th.iloc[i, 1:].values
