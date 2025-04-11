@@ -28,9 +28,6 @@ def cleanData(df):
 		float_cols = df.select_dtypes(include=['float64'])
 		df.dropna(inplace=True, subset=float_cols.columns)
 		df.drop_duplicates(inplace = True)
-		
-		# TODO check if linear variables affect anything
-		# courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
 		courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
 		df = df[courses + ['Hogwarts House']]
 		return df
@@ -44,29 +41,7 @@ def softmax(ndata, th):
 	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
 	return probs
 
-# * Mini-Batch GD
-def minibatchEpoch(ndata, y, th):
-	learningRate = 0.3
-	batch_size = 32
-	m = len(ndata)
-	num_batches = (m + batch_size-1) // batch_size
-	classes = list(th.index)
-
-	for i in range(num_batches):
-		start = i * batch_size
-		end = min((i + 1) * batch_size, m)
-		X_batch = ndata[start:end]
-		y_batch = y[start:end]
-		probs = softmax(X_batch, th)
-		y_onehot = np.zeros_like(probs)
-		for i, label in enumerate(y_batch):
-			y_onehot[i, classes.index(label)] = 1
-		grad = np.dot((probs - y_onehot).T, X_batch)
-		th = th - learningRate * grad / (end-start)
-	return th
-
-# * Batch GD
-def batchEpoch(ndata, y, th):
+def epoch(ndata, y, th):
 	learningRate = 0.3
 	m = len(ndata)
 	probs = softmax(ndata, th)
@@ -77,20 +52,6 @@ def batchEpoch(ndata, y, th):
 		y_onehot[i, classes.index(label)] = 1
 	grad = np.dot((probs - y_onehot).T, ndata)
 	return th - learningRate * grad / m
-
-# * Stochastic GD
-def stochEpoch(ndata, y, th):
-	learningRate = 0.5
-	classes = list(th.index)
-	m = len(ndata)
-
-	for i in range(m):
-		x_i = ndata[i].reshape(1, -1)
-		probs = softmax(x_i, th)
-		y_onehot = np.zeros_like(probs)
-		y_onehot[0, classes.index(y[i])] = 1
-		th = th - learningRate * np.dot((probs - y_onehot).T, x_i)
-	return th
 
 def trainModel(data, y, headers, n):
 	try:
@@ -108,7 +69,7 @@ def trainModel(data, y, headers, n):
 		tolerance = 10**-4
 		for i in range(maxiterations):
 			prvth = th.copy()
-			th = minibatchEpoch(ndata, y, th)
+			th = epoch(ndata, y, th)
 			maxDiff = np.max(np.abs(th.values-prvth.values))
 			print(f"\rEpoch [{i}/{maxiterations}]: {maxDiff:.6f}",end="")
 			if i % 100 == 0 and maxDiff < tolerance:
@@ -139,7 +100,6 @@ def main():
 	df = cleanData(df)
 	data, y = df.iloc[:, :-1].to_numpy(), df.iloc[:,-1].to_numpy()
 	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1])
-	print(th)
 	th.to_csv("thetas.csv")
 
 if __name__ == "__main__":

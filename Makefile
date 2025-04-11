@@ -59,7 +59,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "adaptive"
+	git commit -m "modelsort"
 	git push
 
 re: fclean all
