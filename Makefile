@@ -58,7 +58,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "optimize"
+	git commit -m "investigating testdata"
 	git push
 
 re: fclean all

@@ -23,15 +23,14 @@ def loadData(fil):
 
 def cleanData(df):
 	try:
-		courses = ['Charms', 'Divination']
+		courses = ['Defense Against the Dark Arts', 'Charms', 'Flying']
 		houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
 	
 		df = df[df['Hogwarts House'].isin(houses)]
 		float_cols = df.select_dtypes(include=['float64'])
 		df.dropna(inplace=True, subset=float_cols.columns)
 		df.drop_duplicates(inplace = True)
-		# df = df[courses + ['Hogwarts House']]
-		df = df[list(float_cols.columns) + ['Hogwarts House']]
+		df = df[courses + ['Hogwarts House']]
 		return df
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)
@@ -59,16 +58,15 @@ def trainModel(data, y, headers, n):
 	try:
 		classes = np.unique(y)
 		th = pd.DataFrame(np.zeros((len(classes), n)), columns=['Bias'] + list(headers), index=classes)
-		
-		mins = np.min(data, axis=0)
-		maxs = np.max(data, axis=0)
-		ranges = maxs - mins
-		ranges[ranges == 0] = 1
-		ndata = (data - mins) / ranges
+
+		means = np.mean(data, axis=0)
+		stds = np.std(data, axis=0)
+		stds[stds == 0] = 1
+		ndata = (data - means) / stds
 		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
 
 		maxiterations = 10000
-		tolerance = 10**-3
+		tolerance = 10**-5
 		for i in range(maxiterations):
 			prvth = th.copy()
 			th = epoch(ndata, y, th)
@@ -78,12 +76,11 @@ def trainModel(data, y, headers, n):
 				print(f"\rEpoch [{i}/{maxiterations}]")
 				break
 		print(GREEN + "\rModel Trained!" + (" " * 30) + RESET)
-		
+
 		for i in range(th.shape[0]):
 			weights = th.iloc[i, 1:].values
-			denorm_weights = weights / ranges
-			denorm_bias = th.iloc[i, 0] - np.sum(weights * mins / ranges)
-			th.iloc[i, 1:] = denorm_weights
+			denorm_bias = th.iloc[i, 0] - np.sum(weights * means / stds)
+			th.iloc[i, 1:] = weights / stds
 			th.iloc[i, 0] = denorm_bias
 
 		return th

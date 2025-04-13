@@ -35,7 +35,7 @@ def cleanData(df):
 		sys.exit(1)
 
 def plotData(df):
-	courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
+	courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Charms', 'Flying']
 	
 	df_subset = df[courses + ['Hogwarts House']]
 	fig1 = sns.pairplot(df_subset, hue="Hogwarts House")
