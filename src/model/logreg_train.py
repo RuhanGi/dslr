@@ -23,14 +23,15 @@ def loadData(fil):
 
 def cleanData(df):
 	try:
+		courses = ['Charms', 'Divination']
 		houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
+	
 		df = df[df['Hogwarts House'].isin(houses)]
 		float_cols = df.select_dtypes(include=['float64'])
 		df.dropna(inplace=True, subset=float_cols.columns)
 		df.drop_duplicates(inplace = True)
-		courses = ['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
-		# courses = list(float_cols.columns)
-		df = df[courses + ['Hogwarts House']]
+		# df = df[courses + ['Hogwarts House']]
+		df = df[list(float_cols.columns) + ['Hogwarts House']]
 		return df
 	except Exception as e:
 		print(RED + "Error: " + str(e) + RESET)
@@ -67,7 +68,7 @@ def trainModel(data, y, headers, n):
 		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
 
 		maxiterations = 10000
-		tolerance = 10**-4
+		tolerance = 10**-3
 		for i in range(maxiterations):
 			prvth = th.copy()
 			th = epoch(ndata, y, th)
@@ -77,8 +78,6 @@ def trainModel(data, y, headers, n):
 				print(f"\rEpoch [{i}/{maxiterations}]")
 				break
 		print(GREEN + "\rModel Trained!" + (" " * 30) + RESET)
-		
-		# TODO - adagrad/adadelta/adam
 		
 		for i in range(th.shape[0]):
 			weights = th.iloc[i, 1:].values

@@ -51,14 +51,14 @@ gen:
 	python3 datasets/split.py $(DATASET)
 
 clean:
-	rm -rf houses.csv pairplot.png
+	rm -rf houses.csv
 
 fclean: clean
 	rm -rf thetas.csv
 
 gpush: fclean
 	git add .
-	git commit -m "truthfile"
+	git commit -m "optimize"
 	git push
 
 re: fclean all

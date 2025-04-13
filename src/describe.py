@@ -93,7 +93,7 @@ def extractInfo(df):
 				  "IQR", "Range", "Skewness", "Kurtosis", "#Outliers"]
 		column_headers = df.select_dtypes(include=['float64']).columns
 		stats = pd.DataFrame(df, index=row_headers, columns=column_headers)
-		
+
 		for col in stats.columns:
 			stats.loc["Count", col], stats.loc["Mean", col] = mean(df[col])
 			stats.loc["Std", col] = std(df[col], stats.loc["Count", col], stats.loc["Mean", col])

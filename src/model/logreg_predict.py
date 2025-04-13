@@ -9,18 +9,18 @@ YELLOW = "\033[93m"
 BLUE = "\033[94m"
 RESET = "\033[0m"
 
-def load_thetas(filename):
+def loadData(fil):
 	try:
-		return pd.read_csv(filename, index_col=0)
+		return pd.read_csv(fil, index_col=0)
 	except FileNotFoundError:
-		print(RED + f"Error: {filename} not found!" + RESET)
+		print(RED + f"Error: {fil} not found!" + RESET)
 		sys.exit(1)
 
-def load_test_data(filename):
+def loadThetas(fil):
 	try:
-		return pd.read_csv(filename, index_col=0)
+		return pd.read_csv(fil, index_col=0)
 	except FileNotFoundError:
-		print(RED + f"Error: {filename} not found!" + RESET)
+		print(RED + f"Error: {fil} not found!" + RESET)
 		sys.exit(1)
 
 def softmax(z):
@@ -30,8 +30,7 @@ def softmax(z):
 def predict_classes(ndata, th):
 	z = np.dot(ndata, th.T)
 	probs = softmax(z)
-	predictions = np.argmax(probs, axis=1)
-	return predictions
+	return np.argmax(probs, axis=1)
 
 def getAccuracy(predictions_df):
 	try:
@@ -48,8 +47,8 @@ def main():
 		print(RED + "Usage: python estimate.py dataset_test.csv thetas.csv" + RESET)
 		sys.exit(1)
 
-	test_data = load_test_data(sys.argv[1])
-	th = load_thetas(sys.argv[2])
+	test_data = loadData(sys.argv[1])
+	th = loadThetas(sys.argv[2])
 
 	headers = th.columns[1:]
 	missing_cols = set(headers) - set(test_data.columns)
@@ -60,7 +59,6 @@ def main():
 	data = test_data[headers].to_numpy()
 	data = np.hstack((np.ones((data.shape[0], 1)), data))
 	predicted_indices = predict_classes(data, th)
-
 
 	house_labels = th.index[predicted_indices]
 
