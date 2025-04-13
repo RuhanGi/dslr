@@ -35,14 +35,19 @@ def cleanData(df):
 		sys.exit(1)
 
 def plotData(df):
-	courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Ancient Runes',
-		   'Divination', 'Muggle Studies', 'History of Magic', 'Transfiguration', 'Charms', 'Flying']
-	df_subset = df[courses + ['Hogwarts House']] 
-
-	sns.pairplot(df_subset, hue="Hogwarts House")
-	plt.savefig("pairplot.png", dpi=300)
-	plt.gcf().canvas.mpl_connect('key_press_event', lambda event: plt.close() if event.key == 'escape' else None)
+	courses =['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
+	
+	df_subset = df[courses + ['Hogwarts House']]
+	fig1 = sns.pairplot(df_subset, hue="Hogwarts House")
+	fig1.fig.canvas.mpl_connect('key_press_event', lambda event: plt.close() if event.key == 'escape' else None)
 	plt.show()
+	plt.close(fig1.fig)
+
+	df_float = df.select_dtypes(include='float64').copy()
+	df_float['Hogwarts House'] = df['Hogwarts House']
+	fig2 = sns.pairplot(df_float, hue="Hogwarts House")
+	fig2.fig.savefig("pairplot.png", dpi=300)
+	plt.close(fig2.fig)
 
 def main():
 	if len(sys.argv) != 2:

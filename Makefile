@@ -59,7 +59,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "modelsort"
+	git commit -m "pairplot"
 	git push
 
 re: fclean all
