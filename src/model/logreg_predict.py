@@ -1,3 +1,4 @@
+from sklearn.metrics import accuracy_score
 import pandas as pd
 import numpy as np
 import sys
@@ -32,6 +33,16 @@ def predict_classes(ndata, th):
 	predictions = np.argmax(probs, axis=1)
 	return predictions
 
+def getAccuracy(predictions_df):
+	try:
+		truth_df = pd.read_csv("datasets/dataset_truth.csv")
+		y_true = truth_df["Hogwarts House"].values
+		y_pred = predictions_df["Hogwarts House"].values
+		return accuracy_score(y_true, y_pred) * 100
+	except Exception as e:
+		print(RED + f"Error loading truth file: {e}" + RESET)
+		sys.exit(1)
+	
 def main():
 	if len(sys.argv) != 3:
 		print(RED + "Usage: python estimate.py dataset_test.csv thetas.csv" + RESET)
@@ -59,11 +70,7 @@ def main():
 	})
 
 	predictions_df.to_csv("houses.csv", index=False)
-	if "Hogwarts House" in test_data.columns:
-		actual_labels = test_data["Hogwarts House"].values
-		accuracy = np.mean(actual_labels == house_labels) * 100
-
-		print(GREEN + f"Model Evaluation:\nAccuracy: {accuracy:.4f}%" + RESET)
+	print(GREEN + f"Model Evaluation:\nAccuracy: {getAccuracy(predictions_df):.4f}%" + RESET)
 
 if __name__ == "__main__":
 	main()

@@ -1,9 +1,8 @@
 SRCDIR = src
 
-# DATASET = datasets/small.csv
 DATASET = datasets/dataset_train.csv
 
-PKGS = matplotlib pandas numpy seaborn
+PKGS = matplotlib pandas numpy seaborn scikit-learn
 
 .SILENT:
 
@@ -36,11 +35,11 @@ b:
 t:
 	python3 $(SRCDIR)/model/logreg_train.py $(DATASET)
 
+e:
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv thetas.csv
+
 t1:
 	python3 $(SRCDIR)/model/logreg_train.py datasets/ex_train.csv
-
-e:
-	python3 $(SRCDIR)/model/logreg_predict.py datasets/small.csv thetas.csv
 
 e1:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/ex_test.csv thetas.csv
@@ -59,7 +58,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "pairplot"
+	git commit -m "truthfile"
 	git push
 
 re: fclean all

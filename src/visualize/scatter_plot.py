@@ -41,7 +41,7 @@ def plotData(df):
 	top_correlations = corr_unstacked.abs().nlargest(4).index
  
 	# Create figure with GridSpec
-	fig = plt.figure(figsize=(18, 10))
+	fig = plt.figure(figsize=(20, 12))
 	gs = fig.add_gridspec(2, 3, width_ratios=[2, 1, 1], height_ratios=[1, 1])
 
 	# **LEFT PANEL: Correlation Matrix**
@@ -55,7 +55,7 @@ def plotData(df):
 
 	# **RIGHT PANEL: Scatter Plots**
 	for i, (var1, var2) in enumerate(top_correlations):
-		ax = fig.add_subplot(gs[i // 2, 1 + i % 2])  # Position in right half
+		ax = fig.add_subplot(gs[i // 2, 1 + i % 2])
 		sns.scatterplot(x=df[var1], y=df[var2], ax=ax)
 		correlation_value = corr_matrix.loc[var1, var2]
 		ax.set_title(f"{var1} vs {var2}\n r = {correlation_value:.2f}")

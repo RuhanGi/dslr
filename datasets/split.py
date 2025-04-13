@@ -2,8 +2,9 @@ import pandas as pd
 import sys
 import os
 
-def stratified_split(input_file, test_ratio=0.2):
+def stratified_split(input_file):
 	try:
+		test_ratio = 0.2
 		df = pd.read_csv(input_file)
 
 		if 'Hogwarts House' not in df.columns:
@@ -35,4 +36,4 @@ if __name__ == "__main__":
 		sys.exit(1)
 
 	input_file = sys.argv[1]
-	stratified_split(input_file, test_ratio=0.05)
+	stratified_split(input_file)

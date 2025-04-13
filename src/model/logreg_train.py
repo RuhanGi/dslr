@@ -28,7 +28,8 @@ def cleanData(df):
 		float_cols = df.select_dtypes(include=['float64'])
 		df.dropna(inplace=True, subset=float_cols.columns)
 		df.drop_duplicates(inplace = True)
-		courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
+		courses = ['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
+		# courses = list(float_cols.columns)
 		df = df[courses + ['Hogwarts House']]
 		return df
 	except Exception as e:
