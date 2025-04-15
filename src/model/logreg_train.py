@@ -72,7 +72,7 @@ def trainModel(data, y, headers, n):
 			th = epoch(ndata, y, th)
 			maxDiff = np.max(np.abs(th.values-prvth.values))
 			print(f"\rEpoch [{i}/{maxiterations}]: {maxDiff:.6f}",end="")
-			if i % 100 == 0 and maxDiff < tolerance:
+			if maxDiff < tolerance:
 				print(f"\rEpoch [{i}/{maxiterations}]")
 				break
 		print(GREEN + "\rModel Trained!" + (" " * 30) + RESET)
