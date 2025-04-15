@@ -13,7 +13,7 @@ all: check
 check:
 	for pkg in $(PKGS); do \
 		if ! python3 -c "import $$pkg" 2>/dev/null; then \
-			pip3 install $$pkg; \
+			pip3 install $$pkg > /dev/null 2>&1; \
 		fi; \
 	done
 
@@ -38,12 +38,6 @@ t:
 e:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv thetas.csv
 
-t1:
-	python3 $(SRCDIR)/model/logreg_train.py datasets/ex_train.csv
-
-e1:
-	python3 $(SRCDIR)/model/logreg_predict.py datasets/ex_test.csv thetas.csv
-
 a:
 	python3 $(SRCDIR)/model/ada_train.py datasets/ex_train.csv
 
@@ -58,7 +52,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "investigating testdata"
+	git commit -m "clean"
 	git push
 
 re: fclean all

@@ -32,60 +32,6 @@ def predict_classes(ndata, th):
 	probs = softmax(z)
 	return np.argmax(probs, axis=1)
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-def plotPairPlot(predictions_df, test_data, th):
-	try:
-		# Load true labels
-		truth_df = pd.read_csv("datasets/dataset_truth.csv")
-
-		# Merge predictions with true values for comparison
-		merged = predictions_df.copy()
-		merged["True House"] = truth_df["Hogwarts House"].values
-
-		# Determine correctness
-		merged["Status"] = np.where(
-			merged["Hogwarts House"] != merged["True House"],
-			"Incorrect",
-			merged["Hogwarts House"]
-		)
-
-		# Extract feature columns from thetas
-		feature_cols = th.columns[1:]  # skip bias
-		course_data = test_data[feature_cols].copy()
-		course_data["Status"] = merged["Status"]
-		course_data["True House"] = merged["True House"]
-
-		# Create pairplot
-		pair = sns.pairplot(course_data, hue="Status", palette="husl", diag_kind="kde", plot_kws={"alpha": 0.7})
-		plt.suptitle("Pair Plot with Incorrect Predictions Labeled", y=1.02)
-
-		# Annotate incorrect points with true labels
-		incorrect_data = course_data[course_data["Status"] == "Incorrect"]
-
-		for i, row_i in enumerate(pair.x_vars):
-			for j, row_j in enumerate(pair.y_vars):
-				if i < j:
-					ax = pair.axes[j, i]
-					for idx, row in incorrect_data.iterrows():
-						ax.text(
-							row[row_i],
-							row[row_j],
-							row["True House"],
-							color="black",
-							fontsize=8,
-							ha="center",
-							va="center"
-						)
-
-		plt.tight_layout()
-		plt.show()
-
-	except Exception as e:
-		print(RED + f"Error generating pair plot: {e}" + RESET)
-		sys.exit(1)
-
 # from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 # import matplotlib.pyplot as plt
 # def getAccuracy(predictions_df):
@@ -143,8 +89,6 @@ def main():
 
 	predictions_df.to_csv("houses.csv", index=False)
 	print(GREEN + f"Model Evaluation:\nAccuracy: {getAccuracy(predictions_df):.4f}%" + RESET)
-
-	plotPairPlot(predictions_df, test_data, th)
 
 if __name__ == "__main__":
 	main()

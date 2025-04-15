@@ -35,17 +35,13 @@ def cleanData(df):
 def plotData(df):
 	numeric_df = df.select_dtypes(include=['float64'])
 	corr_matrix = numeric_df.corr()
-
-	# Get top 4 correlations (by magnitude, but keeping signs)
 	corr_unstacked = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)).stack()
 	top_correlations = corr_unstacked.abs().nlargest(4).index
  
-	# Create figure with GridSpec
 	fig = plt.figure(figsize=(20, 12))
 	gs = fig.add_gridspec(2, 3, width_ratios=[2, 1, 1], height_ratios=[1, 1])
 
-	# **LEFT PANEL: Correlation Matrix**
-	ax0 = fig.add_subplot(gs[:, 0])  # Takes up both rows in first column
+	ax0 = fig.add_subplot(gs[:, 0])
 	mask = np.tril(np.ones_like(corr_matrix, dtype=bool), k=-1)
 	sns.heatmap(corr_matrix, mask=mask, annot=True, cmap="coolwarm", fmt=".2f",
 				linewidths=0.5, annot_kws={"size": 10}, ax=ax0)
@@ -53,7 +49,6 @@ def plotData(df):
 	ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=10)
 	ax0.set_title("Correlation Matrix", fontsize=14)
 
-	# **RIGHT PANEL: Scatter Plots**
 	for i, (var1, var2) in enumerate(top_correlations):
 		ax = fig.add_subplot(gs[i // 2, 1 + i % 2])
 		sns.scatterplot(x=df[var1], y=df[var2], ax=ax)

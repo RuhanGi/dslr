@@ -43,11 +43,11 @@ def plotData(df):
 	plt.show()
 	plt.close(fig1.fig)
 
-	df_float = df.select_dtypes(include='float64').copy()
-	df_float['Hogwarts House'] = df['Hogwarts House']
-	fig2 = sns.pairplot(df_float, hue="Hogwarts House")
-	fig2.fig.savefig("pairplot.png", dpi=300)
-	plt.close(fig2.fig)
+	# df_float = df.select_dtypes(include='float64').copy()
+	# df_float['Hogwarts House'] = df['Hogwarts House']
+	# fig2 = sns.pairplot(df_float, hue="Hogwarts House")
+	# fig2.fig.savefig("pairplot.png", dpi=300)
+	# plt.close(fig2.fig)
 
 def main():
 	if len(sys.argv) != 2:
