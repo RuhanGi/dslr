@@ -43,6 +43,9 @@ a: t e
 o:
 	python3 $(SRCDIR)/model/old_logreg_train.py $(DATASET)
 	
+r: #t
+	python3 raj.py datasets/dataset_test.csv weights.csv
+
 
 bonus:
 	python3 $(SRCDIR)/model/ada_train.py datasets/ex_train.csv
@@ -59,7 +62,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "Rajs Function"
+	git commit -m "99% Finally"
 	git push
 
 re: fclean all

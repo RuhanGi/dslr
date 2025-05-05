@@ -15,12 +15,13 @@ RESET = "\033[0m"
 def loadData(fil):
     try:
         df = pd.read_csv(fil)
+        df = df.fillna(0)
 
         # features = list(df.select_dtypes(include=['float64']).columns)
-        features = ['Defense Against the Dark Arts', 'Charms', 'Flying']
-        # features = ['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 
-        #                'Divination', 'Muggle Studies', 'Ancient Runes', 'History of Magic', 
-        #                'Transfiguration', 'Charms', 'Flying']
+        # features = ['Defense Against the Dark Arts', 'Charms', 'Flying']
+        features = ['Astronomy', 'Herbology', 'Defense Against the Dark Arts', 
+                       'Divination', 'Muggle Studies', 'Ancient Runes', 'History of Magic', 
+                       'Transfiguration', 'Charms', 'Flying']
         label = 'Hogwarts House'
 
         df.dropna(inplace=True, subset=features+[label])
@@ -62,46 +63,19 @@ def trainModel(depen, onehot):
     tolerance = 10**-4
 
     for e in range(maxepochs):
-        prvweights = weights.copy()
+        prv = weights.copy()
         loss = epoch(weights, depen, onehot, learningRate)
-        maxDiff = np.max(np.abs(weights-prvweights))
+        maxDiff = np.max(np.abs(weights-prv))
         print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
         if maxDiff < tolerance:
             print()
             break
     print(GREEN + "\rModel Trained!" + (" " * 50) + RESET)
-    
-    weights[:, :-1], weights[:,-1] = weights[:, :-1] / stds, \
-        weights[:, -1] - np.sum(weights[:, :-1] * means / stds, axis=1)
 
     return weights
     # except Exception as e:
     #     print(RED + "Error: " + str(e) + RESET)
     #     sys.exit(1)
-
-def gradient_descent(X, y, learning_rate=0.01, epochs=1000):
-    """Performs gradient descent to find the optimal weights."""
-    X = np.hstack((X, np.ones((X.shape[0], 1))))
-    weights = np.zeros((y.shape[1], X.shape[1]))
-
-    m = len(y)
-    for epoch in range(epochs):
-        # Calculate the predictions (probabilities) using softmax
-        predictions = softmax(X, weights).T
-    
-        # Compute the gradient (for multi-class classification)
-        gradient = np.dot(X.T, predictions - y) / m
-
-        # Update the weights
-        weights -= learning_rate * gradient.T
-        
-        # Optionally, print the loss every 100 epochs
-        if epoch % 100 == 0:
-            # Compute the cross-entropy loss for multi-class classification
-            loss = -np.mean(np.sum(y * np.log(predictions + 1e-10), axis=1))  # Avoid log(0)
-            print(f"\rEpoch {epoch}: Loss = {loss}",end="")
-    print()
-    return weights
 
 def main():
     if len(sys.argv) != 2:
@@ -116,8 +90,6 @@ def main():
     onehot = np.eye(len(unique))[indep]
 
     weights = trainModel(depen, onehot)
-
-    # weights = gradient_descent(depen, onehot)
 
     df = pd.DataFrame(weights, index=unique, columns=features+[label])
     df.to_csv("weights.csv")
