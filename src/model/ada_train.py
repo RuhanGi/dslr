@@ -1,7 +1,5 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import math
 import time
 import sys
 
@@ -16,209 +14,157 @@ BLACK = "\033[98m"
 RESET = "\033[0m"
 
 def loadData(fil):
-	try:
-		return pd.read_csv(fil)
-	except Exception as e:
-		print(RED + "Error: " + str(e) + RESET)
-		sys.exit(1)
+    try:
+        df = pd.read_csv(fil)
+        df = df.fillna(0)
+        df.drop_duplicates(inplace = True)
 
-def cleanData(df):
-	try:
-		houses = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
-		df = df[df['Hogwarts House'].isin(houses)]
-		float_cols = df.select_dtypes(include=['float64'])
-		df.dropna(inplace=True, subset=float_cols.columns)
-		df.drop_duplicates(inplace = True)
-		
-		# TODO check if linear variables affect anything
-		# courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes']
-		courses =['Herbology', 'Defense Against the Dark Arts', 'Ancient Runes', 'Charms']
-		df = df[courses + ['Hogwarts House']]
-		return df
-	except Exception as e:
-		print(RED + "Error: " + str(e) + RESET)
-		sys.exit(1)
+        label = 'Hogwarts House'
+        features = list(df.select_dtypes(include=['float64']).columns)
+        indistincts =  ['Arithmancy', 'Potions', 'Care of Magical Creatures', 'Astronomy']
+        for i in indistincts:
+            features.remove(i)
 
-def softmax(ndata, th):
-	z = np.dot(ndata, th.T)
-	exp_scores = np.exp(z - np.max(z, axis=1, keepdims=True)) 
-	probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
-	return probs
+        indep = np.array(df[label])
+        unique = np.unique(indep)
+        mapper = {house: i for i, house in enumerate(unique)}
+        indep = np.vectorize(mapper.get)(indep)
+        indep = np.eye(len(unique))[indep]
 
-def minibatchEpoch(ndata, y, th, batch_size=32):
-	learningRate = 0.3
-	m = len(ndata)
-	num_batches = (m + batch_size-1) // batch_size
-	classes = list(th.index)
+        return features, np.array(df[features]), label, indep, unique
+    except Exception as e:
+        print(RED + "Error: " + str(e) + RESET)
+        sys.exit(1)
 
-	for i in range(num_batches):
-		start = i * batch_size
-		end = min((i + 1) * batch_size, m)
-		X_batch = ndata[start:end]
-		y_batch = y[start:end]
-		probs = softmax(X_batch, th)
-		y_onehot = np.zeros_like(probs)
-		for i, label in enumerate(y_batch):
-			y_onehot[i, classes.index(label)] = 1
-		grad = np.dot((probs - y_onehot).T, X_batch)
-		th = th - learningRate * grad / (end-start)
-	return th
+def categoricalCrossentropy(onehot, probs):
+    epsilon = 1e-15
+    probs = np.clip(probs, epsilon, 1 - epsilon)
+    return -np.mean(np.sum(onehot * np.log(probs), axis=1))
 
-def batchEpoch(ndata, y, th):
-	learningRate = 0.3
-	m = len(ndata)
-	probs = softmax(ndata, th)
+def softmax(weights, inputs):
+    z = np.dot(inputs, weights.T)
+    exp = np.exp(z - np.max(z, axis=1, keepdims=True))
+    return exp / np.sum(exp, axis=1, keepdims=True)
 
-	classes = list(th.index)
-	y_onehot = np.zeros_like(probs)
-	for i, label in enumerate(y):
-		y_onehot[i, classes.index(label)] = 1
-	grad = np.dot((probs - y_onehot).T, ndata)
-	return th - learningRate * grad / m
+def epoch(weights, inputs, onehot, learningRate):
+    probs = softmax(weights, inputs)
+    grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
+    weights -= learningRate * grad
+    return categoricalCrossentropy(onehot, probs)
 
-def stochEpoch(ndata, y, th):
-	learningRate = 0.5
-	classes = list(th.index)
-	m = len(ndata)
+def adagradEpoch(weights, inputs, onehot, learningRate, cache):
+    probs = softmax(weights, inputs)
+    grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
+    cache += grad**2
+    epsilon = 10**-8
+    learningRate = learningRate / (np.sqrt(cache) + epsilon)
+    weights -= learningRate * grad
+    return categoricalCrossentropy(onehot, probs), cache
 
-	for i in range(m):
-		x_i = ndata[i].reshape(1, -1)
-		probs = softmax(x_i, th)
-		y_onehot = np.zeros_like(probs)
-		y_onehot[0, classes.index(y[i])] = 1
-		th = th - learningRate * np.dot((probs - y_onehot).T, x_i)
-	return th
+def rmspropEpoch(weights, inputs, onehot, learningRate, cache):
+    probs = softmax(weights, inputs)
+    grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
 
-def adagradEpoch(ndata, y, th, cache):
-	m = len(ndata)
-	probs = softmax(ndata, th)
+    decay, epsilon = 0.95, 10**-8
+    cache = cache * decay + (1-decay) * grad**2
+    learningRate = 0.05 / (np.sqrt(cache) + epsilon)
+    weights -= learningRate * grad
+    return categoricalCrossentropy(onehot, probs), cache
 
-	classes = list(th.index)
-	y_onehot = np.zeros_like(probs)
-	for i, label in enumerate(y):
-		y_onehot[i, classes.index(label)] = 1
-	grad = np.dot((probs - y_onehot).T, ndata) / m
+def adamEpoch(weights, inputs, onehot, learningRate, velocity, momentum, t):
+    probs = softmax(weights, inputs)
+    grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
+    decay1, decay2, epsilon = 0.9, 0.99, 10**-8
+    momentum = decay1 * momentum + (1-decay1) * grad
+    velocity = decay2 * velocity + (1-decay2) * grad**2
+    learningRate = learningRate / (np.sqrt(velocity / (1-decay2**t)) + epsilon)
+    weights -= learningRate * grad
+    return categoricalCrossentropy(onehot, probs), velocity, momentum
 
-	cache += grad**2
-	epsilon = 10**-8
-	learningRate = 0.3 / (np.sqrt(cache) + epsilon)
+def trainModel(inputs, onehot, optimizer):
+    try:
+        means = np.average(inputs, axis=0)
+        stds = np.std(inputs, axis=0)
+        stds[stds == 0] = 1
+        inputs = (inputs - means) / stds    
+        inputs = np.hstack((inputs, np.ones((inputs.shape[0], 1))))
+        weights = np.zeros((onehot.shape[1], inputs.shape[1]))
 
-	return th - learningRate * grad, cache
+        learningRate = 0.05
+        maxepochs = 10000
+        tolerance = 10**-3
 
-def rmspropEpoch(ndata, y, th, cache):
-	m = len(ndata)
-	probs = softmax(ndata, th)
+        cache = np.zeros_like(weights)
+        momentum = np.zeros_like(weights)
+        velocity = np.zeros_like(weights)
+        e = 0
+        start_time = time.time()
+        while e < maxepochs:
+            prv = weights.copy()
+            loss = epoch(weights, inputs, onehot, learningRate)
 
-	classes = list(th.index)
-	y_onehot = np.zeros_like(probs)
-	for i, label in enumerate(y):
-		y_onehot[i, classes.index(label)] = 1
-	grad = np.dot((probs - y_onehot).T, ndata) / m
+            if optimizer == 'batch':
+                loss = epoch(weights, inputs, onehot, learningRate)
+            elif optimizer == 'stochastic':
+                for i in range(0, len(inputs)):
+                    loss = epoch(weights, inputs[i:i+1], onehot[i:i+1], learningRate)
+            elif optimizer == 'minibatch':
+                batch_size = 32
+                for i in range(0, len(inputs), batch_size):
+                    loss = epoch(weights, inputs[i:i+batch_size], onehot[i:i+batch_size], learningRate)
+            elif optimizer == 'adagrad':
+                loss, cache = adagradEpoch(weights, inputs, onehot, learningRate, cache)
+            elif optimizer == 'rmsprop':
+                loss, cache = rmspropEpoch(weights, inputs, onehot, learningRate, cache)
+            elif optimizer == 'adam':
+                loss, velocity, momentum = adamEpoch(weights, inputs, onehot, learningRate, velocity, momentum, e+1)
+            else:
+                raise ValueError(f"Unknown optimizer: {optimizer}")
+            e += 1
+            maxDiff = np.max(np.abs(weights-prv))
+            print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
+            if maxDiff < tolerance:
+                print()
+                break
 
-	decay = 0.95
-	cache = cache * decay + (1-decay) * grad**2
-	epsilon = 10**-8
-	learningRate = 0.05 / (np.sqrt(cache) + epsilon)
+        duration = time.time() - start_time
+        if e < maxepochs:
+            print(GREEN + f"\r[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!"+ RESET)
+        else:
+            print(YELLOW + f"\r[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!" + " "*30 + RESET)
+        
+        weights[:, :-1], weights[:,-1] = weights[:, :-1] / stds, \
+            weights[:, -1] - np.sum(weights[:, :-1] * means / stds, axis=1)
 
-	return th - learningRate * grad, cache
-
-def adamEpoch(ndata, y, th, momentum, velocity, t):
-	m = len(ndata)
-	probs = softmax(ndata, th)
-
-	classes = list(th.index)
-	y_onehot = np.zeros_like(probs)
-	for i, label in enumerate(y):
-		y_onehot[i, classes.index(label)] = 1
-	grad = np.dot((probs - y_onehot).T, ndata) / m
-
-	decay1, decay2 = 0.9, 0.99
-	momentum = decay1 * momentum + (1-decay1) * grad
-	velocity = decay2 * velocity + (1-decay2) * grad**2
-	epsilon = 10**-8
-	learningRate = 0.001 / (np.sqrt(velocity / (1-decay2**t)) + epsilon)
-
-	return th - learningRate * (momentum / (1-decay1**t)), momentum, velocity
-
-
-def trainModel(data, y, headers, n, optimizer='batch'):
-	try:
-		classes = np.unique(y)
-		th = pd.DataFrame(np.zeros((len(classes), n)), columns=['Bias'] + list(headers), index=classes)
-		m = len(data)
-		mins = np.min(data, axis=0)
-		maxs = np.max(data, axis=0)
-		ranges = maxs - mins
-		ranges[ranges == 0] = 1
-		ndata = (data - mins) / ranges
-		ndata = np.hstack((np.ones((ndata.shape[0], 1)), ndata))
-		maxiterations = 10000
-		tolerance = 10**-3
-		start_time = time.time()
-		
-		momentum = np.zeros_like(th.values)
-		velocity = np.zeros_like(th.values)
-		cache = np.zeros_like(th.values)
-		t = 1
-		maxDiff = 1
-		while t <= maxiterations and maxDiff > tolerance:
-			prvth = th.copy()
-
-			if optimizer == 'batch':
-				th = batchEpoch(ndata, y, th)
-			elif optimizer == 'stochastic':
-				th = stochEpoch(ndata, y, th)
-				t += m - 1
-			elif optimizer == 'minibatch':
-				batchsize = 32
-				th = minibatchEpoch(ndata, y, th, batchsize)
-				t += (m + batchsize-1) // batchsize - 1
-			elif optimizer == 'adagrad':
-				th, cache = adagradEpoch(ndata, y, th, cache)
-			elif optimizer == 'rmsprop':
-				th, cache = rmspropEpoch(ndata, y, th, cache)
-			elif optimizer == 'adam':
-				th, momentum, velocity = adamEpoch(ndata, y, th, momentum, velocity, t)
-			else:
-				raise ValueError(f"Unknown optimizer: {optimizer}")
-			
-			maxDiff = np.max(np.abs(th.values - prvth.values))
-			print(f"\r[{optimizer}] Epoch [{t}/{maxiterations}]: {maxDiff:.6f}", end="")
-			t += 1
-
-		duration = time.time() - start_time
-		if t < maxiterations:
-			print(GREEN + f"\r[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!" + RESET)
-		else:
-			print(YELLOW + f"\r[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!" + RESET)
-		
-		for i in range(th.shape[0]):
-			weights = th.iloc[i, 1:].values
-			denorm_weights = weights / ranges
-			denorm_bias = th.iloc[i, 0] - np.sum(weights * mins / ranges)
-			th.iloc[i, 1:] = denorm_weights
-			th.iloc[i, 0] = denorm_bias
-
-		return th
-	except Exception as e:
-		print(RED + "Error: " + str(e) + RESET)
-		sys.exit(1)
+        return weights
+    except Exception as e:
+        print(RED + "Error: " + str(e) + RESET)
+        sys.exit(1)
 
 def main():
-	if len(sys.argv) != 2:
-		print(RED + "Pass Training Data!" + RESET)
-		sys.exit(1)
-	
-	df = loadData(sys.argv[1])
-	df = cleanData(df)
-	data, y = df.iloc[:, :-1].to_numpy(), df.iloc[:,-1].to_numpy()
-	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1], 'batch')
-	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1], 'stochastic')
-	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1], 'minibatch')
-	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1], 'adagrad')
-	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1], 'rmsprop')
-	th = trainModel(data, y, df.columns[:-1].to_numpy(), df.shape[1], 'adam')
-	th.to_csv("thetas.csv")
+    if len(sys.argv) != 2:
+        print(RED + "Pass Training Data!" + RESET)
+        sys.exit(1)
+    
+    features, inputs, label, onehot, unique = loadData(sys.argv[1])
+
+    weights = trainModel(inputs, onehot, 'batch')
+    pd.DataFrame(weights, index=unique, columns=features+[label]).to_csv("batch.csv")
+
+    weights = trainModel(inputs, onehot, 'stochastic')
+    pd.DataFrame(weights, index=unique, columns=features+[label]).to_csv("stochastic.csv")
+
+    weights = trainModel(inputs, onehot, 'minibatch')
+    pd.DataFrame(weights, index=unique, columns=features+[label]).to_csv("minibatch.csv")
+
+    weights = trainModel(inputs, onehot, 'adagrad')
+    pd.DataFrame(weights, index=unique, columns=features+[label]).to_csv("adagrad.csv")
+
+    weights = trainModel(inputs, onehot, 'rmsprop')
+    pd.DataFrame(weights, index=unique, columns=features+[label]).to_csv("rmsprop.csv")
+
+    weights = trainModel(inputs, onehot, 'adam')
+    pd.DataFrame(weights, index=unique, columns=features+[label]).to_csv("adam.csv")
 
 if __name__ == "__main__":
-	main()
+    main()

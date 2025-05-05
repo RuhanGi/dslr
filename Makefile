@@ -8,7 +8,7 @@ PKGS = matplotlib pandas numpy seaborn scikit-learn
 
 all: check
 	printf "\x1B[32m Packages Ready!\x1B[0m\n"
-	printf "\x1B[30m  Usage:\x1B[33m make {[d], [h,s,p], [t,e]}\x1B[0m\n"
+	printf "\x1B[30m  Usage:\x1B[33m make {[d], [h,s,p,b], [t,e,a]}\x1B[0m\n"
 
 check:
 	for pkg in $(PKGS); do \
@@ -18,7 +18,7 @@ check:
 	done
 
 d:
-	python3 $(SRCDIR)/describe.py $(DATASET)
+	python3 $(SRCDIR)/analysis/describe.py $(DATASET)
 
 h:
 	python3 $(SRCDIR)/visualize/histogram.py $(DATASET)
@@ -38,31 +38,28 @@ t:
 e:
 	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv weights.csv
 
-a: t e
-
-o:
-	python3 $(SRCDIR)/model/old_logreg_train.py $(DATASET)
-	
-r: #t
-	python3 raj.py datasets/dataset_test.csv weights.csv
-
+a:
+	python3 $(SRCDIR)/model/ada_train.py $(DATASET)
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv batch.csv
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv stochastic.csv
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv minibatch.csv
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv adagrad.csv
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv rmsprop.csv
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv adam.csv
 
 bonus:
 	python3 $(SRCDIR)/model/ada_train.py datasets/ex_train.csv
-
-gen:
-	python3 datasets/split.py $(DATASET)
 
 clean:
 	rm -rf houses.csv
 	find . -name .DS_Store -delete
 
 fclean: clean
-	rm -rf weights.csv
+	rm -rf weights.csv batch.csv stochastic.csv minibatch.csv adagrad.csv rmsprop.csv adam.csv
 
 gpush: fclean
 	git add .
-	git commit -m "Refined"
+	git commit -m "Optimization Algos"
 	git push
 
 re: fclean all

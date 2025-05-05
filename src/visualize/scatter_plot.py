@@ -38,7 +38,7 @@ def plotData(df):
 	corr_unstacked = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)).stack()
 	top_correlations = corr_unstacked.abs().nlargest(4).index
  
-	fig = plt.figure(figsize=(20, 12))
+	fig = plt.figure(figsize=(22, 11))
 	gs = fig.add_gridspec(2, 3, width_ratios=[2, 1, 1], height_ratios=[1, 1])
 
 	ax0 = fig.add_subplot(gs[:, 0])

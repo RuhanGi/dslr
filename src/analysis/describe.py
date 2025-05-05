@@ -31,12 +31,6 @@ def cleanData(df):
 		print(RED + "Error: " + str(e) + RESET)
 		sys.exit(1)
 
-# * wrong format integer among strings
-# ? df['Birthday'] = pd.to_datetime(df['Birthday'])
-# * Remove rows with NaN only in floats so far
-# * wrong data?
-# ? try removing MAJOR outliers
-
 def count(column):
 	c = 0
 	for i in column:

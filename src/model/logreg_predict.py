@@ -17,7 +17,7 @@ def getAccuracy():
         predictions_df = pd.read_csv("houses.csv")
         y_true = truth_df["Hogwarts House"].values
         y_pred = predictions_df["Hogwarts House"].values
-        print(GREEN + f"Accuracy: {accuracy_score(y_true, y_pred) * 100:.4f}%" + RESET)
+        print(GREEN + f"Accuracy of {sys.argv[2]}: {accuracy_score(y_true, y_pred) * 100:.4f}%" + RESET)
     except Exception as e:
         print(RED + f"Error with loading accuracy files: {e}" + RESET)
         sys.exit(1)
@@ -66,7 +66,7 @@ def main():
     df = pd.DataFrame({label: pred}, index=df.index)
     df.to_csv("houses.csv")
 
-    getAccuracy()
+    # getAccuracy()
 
 if __name__ == "__main__":
     main()
