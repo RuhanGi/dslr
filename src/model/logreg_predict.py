@@ -37,7 +37,7 @@ def getAccuracy():
         y_pred = predictions_df["Hogwarts House"].values
         print(GREEN + f"Model Evaluation:\nAccuracy: {accuracy_score(y_true, y_pred) * 100:.4f}%" + RESET)
     except Exception as e:
-        print(RED + f"Error loading truth file: {e}" + RESET)
+        print(RED + f"Error with loading accuracy files: {e}" + RESET)
         sys.exit(1)
 
 def main():

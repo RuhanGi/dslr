@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import sys
@@ -65,25 +64,13 @@ def trainModel(features, depen, indep):
 
     learningRate = 0.3
     maxepochs = 100000
-    tolerance = 10**-5
+    tolerance = 10**-4
 
-    # for e in range(maxepochs):
-    #     prvweights = weights.copy()
-    #     loss = epoch(weights, depen, onehot, learningRate)
-    #     maxDiff = np.max(np.abs(weights-prvweights))
-    #     print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
-    #     if maxDiff < tolerance:
-    #         print()
-    #         break
     for e in range(maxepochs):
         prvweights = weights.copy()
-        # loss = epoch(weights, depen, onehot, learningRate)
-        batch_size = 8
-        for i in range(0, len(depen), batch_size):
-            epoch(weights, depen[i:i+batch_size], onehot[i:i+batch_size], learningRate)
+        loss = epoch(weights, depen, onehot, learningRate)
         maxDiff = np.max(np.abs(weights-prvweights))
-        # print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
-        print(f"\rEpoch [{e}/{maxepochs}]: Diff={maxDiff:.6f}", end="")
+        print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
         if maxDiff < tolerance:
             print()
             break
