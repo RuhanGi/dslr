@@ -9,86 +9,58 @@ YELLOW = "\033[93m"
 BLUE = "\033[94m"
 RESET = "\033[0m"
 
-def loadData(fil):
-	try:
-		return pd.read_csv(fil, index_col=0)
-	except FileNotFoundError:
-		print(RED + f"Error: {fil} not found!" + RESET)
-		sys.exit(1)
+def load(fil):
+    try:
+        return pd.read_csv(fil, index_col=0)
+    except FileNotFoundError:
+        print(RED + f"Error: {fil} not found!" + RESET)
+        sys.exit(1)
 
-def loadThetas(fil):
-	try:
-		return pd.read_csv(fil, index_col=0)
-	except FileNotFoundError:
-		print(RED + f"Error: {fil} not found!" + RESET)
-		sys.exit(1)
+def parse(th):
+    th.fillna(0)
+    features = list(th.columns)
+    features, label = features[:-1], features[-1]
+    return features, label, list(th.index), th.to_numpy()
 
-def softmax(z):
-	exp_scores = np.exp(z - np.max(z, axis=1, keepdims=True))
-	return exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+def softmax(weights, depen):
+    z = np.dot(depen, weights.T)
+    exp = np.exp(z - np.max(z, axis=1, keepdims=True))
+    return np.argmax(exp / np.sum(exp, axis=1, keepdims=True), axis=1)
 
-def predict_classes(ndata, th):
-	z = np.dot(ndata, th.T)
-	probs = softmax(z)
-	return np.argmax(probs, axis=1)
+def getAccuracy():
+    try:
+        GREEN = "\033[92m"
+        RESET = "\033[0m"
+        truth_df = pd.read_csv("datasets/dataset_truth.csv")
+        predictions_df = pd.read_csv("houses.csv")
+        y_true = truth_df["Hogwarts House"].values
+        y_pred = predictions_df["Hogwarts House"].values
+        print(GREEN + f"Model Evaluation:\nAccuracy: {accuracy_score(y_true, y_pred) * 100:.4f}%" + RESET)
+    except Exception as e:
+        print(RED + f"Error loading truth file: {e}" + RESET)
+        sys.exit(1)
 
-# from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-# import matplotlib.pyplot as plt
-# def getAccuracy(predictions_df):
-# 	try:
-# 		truth_df = pd.read_csv("datasets/dataset_truth.csv")
-# 		y_true = truth_df["Hogwarts House"].values
-# 		y_pred = predictions_df["Hogwarts House"].values
-# 		acc = accuracy_score(y_true, y_pred) * 100
-# 		labels = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin']
-# 		cm = confusion_matrix(y_true, y_pred, labels=labels)
-# 		display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
-# 		display.plot(cmap=plt.cm.Blues, xticks_rotation=45)
-# 		plt.title(f'Confusion Matrix ({acc:.2f}% Accuracy)')
-# 		plt.tight_layout()
-# 		plt.show()
-# 		return acc
-# 	except Exception as e:
-# 		print(RED + f"Error loading truth file: {e}" + RESET)
-# 		sys.exit(1)
-
-def getAccuracy(predictions_df):
-	try:
-		truth_df = pd.read_csv("datasets/dataset_truth.csv")
-		y_true = truth_df["Hogwarts House"].values
-		y_pred = predictions_df["Hogwarts House"].values
-		return accuracy_score(y_true, y_pred) * 100
-	except Exception as e:
-		print(RED + f"Error loading truth file: {e}" + RESET)
-		sys.exit(1)
-	
 def main():
-	if len(sys.argv) != 3:
-		print(RED + "Usage: python estimate.py dataset_test.csv thetas.csv" + RESET)
-		sys.exit(1)
+    if len(sys.argv) != 3:
+        print(RED + "Usage: python estimate.py dataset_test.csv weights.csv" + RESET)
+        sys.exit(1)
 
-	test_data = loadData(sys.argv[1])
-	th = loadThetas(sys.argv[2])
+    test_data = load(sys.argv[1])
+    th = load(sys.argv[2])
+    features, label, unique, weights = parse(th)
 
-	headers = th.columns[1:]
-	missing_cols = set(headers) - set(test_data.columns)
-	if missing_cols:
-		print(RED + f"Error: Missing columns in dataset_test.csv: {missing_cols}" + RESET)
-		sys.exit(1)
+    missing_cols = set(features) - set(test_data.columns)
+    if missing_cols:
+        print(RED + f"Error: Missing columns in dataset_test.csv: {missing_cols}" + RESET)
+        sys.exit(1)
 
-	data = test_data[headers].to_numpy()
-	data = np.hstack((np.ones((data.shape[0], 1)), data))
-	predicted_indices = predict_classes(data, th)
+    data = test_data[features].to_numpy()
+    data = np.hstack((data, np.ones((data.shape[0], 1))))
+    pred = np.array(unique)[softmax(weights, data)]
 
-	house_labels = th.index[predicted_indices]
-
-	predictions_df = pd.DataFrame({
-		"Index": test_data.index,
-		"Hogwarts House": house_labels
-	})
-
-	predictions_df.to_csv("houses.csv", index=False)
-	print(GREEN + f"Model Evaluation:\nAccuracy: {getAccuracy(predictions_df):.4f}%" + RESET)
+    df = pd.DataFrame({label: pred}, index=test_data.index)
+    df.to_csv("houses.csv")
+    getAccuracy()
 
 if __name__ == "__main__":
-	main()
+    main()

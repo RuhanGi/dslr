@@ -36,9 +36,15 @@ t:
 	python3 $(SRCDIR)/model/logreg_train.py $(DATASET)
 
 e:
-	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv thetas.csv
+	python3 $(SRCDIR)/model/logreg_predict.py datasets/dataset_test.csv weights.csv
 
-a:
+a: t e
+
+o:
+	python3 $(SRCDIR)/model/old_logreg_train.py $(DATASET)
+	
+
+bonus:
 	python3 $(SRCDIR)/model/ada_train.py datasets/ex_train.csv
 
 gen:
@@ -48,7 +54,7 @@ clean:
 	rm -rf houses.csv
 
 fclean: clean
-	rm -rf thetas.csv
+	rm -rf weights.csv
 
 gpush: fclean
 	git add .
