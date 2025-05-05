@@ -47,20 +47,15 @@ def epoch(weights, depen, onehot, learningRate):
     weights -= learningRate * grad
     return categoricalCrossentropy(onehot, probs)
 
-def trainModel(features, depen, indep):
+def trainModel(depen, onehot):
     # try:
     means = np.average(depen, axis=0)
     stds = np.std(depen, axis=0)
     stds[stds == 0] = 1
-    depen = (depen - means) / stds
-
-    unique = np.unique(indep)
-    mapper = {house: i for i, house in enumerate(unique)}
-    indep = np.vectorize(mapper.get)(indep)
-    onehot = np.eye(len(unique))[indep]
+    depen = (depen - means) / stds    
 
     depen = np.hstack((depen, np.ones((depen.shape[0], 1))))
-    weights = np.zeros((unique.shape[0], depen.shape[1]))
+    weights = np.zeros((onehot.shape[1], depen.shape[1]))
 
     learningRate = 0.3
     maxepochs = 100000
@@ -79,10 +74,34 @@ def trainModel(features, depen, indep):
     weights[:, :-1], weights[:,-1] = weights[:, :-1] / stds, \
         weights[:, -1] - np.sum(weights[:, :-1] * means / stds, axis=1)
 
-    return unique, weights
+    return weights
     # except Exception as e:
     #     print(RED + "Error: " + str(e) + RESET)
     #     sys.exit(1)
+
+def gradient_descent(X, y, learning_rate=0.01, epochs=1000):
+    """Performs gradient descent to find the optimal weights."""
+    X = np.hstack((X, np.ones((X.shape[0], 1))))
+    weights = np.zeros((y.shape[1], X.shape[1]))
+
+    m = len(y)
+    for epoch in range(epochs):
+        # Calculate the predictions (probabilities) using softmax
+        predictions = softmax(X, weights).T
+    
+        # Compute the gradient (for multi-class classification)
+        gradient = np.dot(X.T, predictions - y) / m
+
+        # Update the weights
+        weights -= learning_rate * gradient.T
+        
+        # Optionally, print the loss every 100 epochs
+        if epoch % 100 == 0:
+            # Compute the cross-entropy loss for multi-class classification
+            loss = -np.mean(np.sum(y * np.log(predictions + 1e-10), axis=1))  # Avoid log(0)
+            print(f"\rEpoch {epoch}: Loss = {loss}",end="")
+    print()
+    return weights
 
 def main():
     if len(sys.argv) != 2:
@@ -90,7 +109,15 @@ def main():
         sys.exit(1)
     
     features, depen, label, indep = loadData(sys.argv[1])
-    unique, weights = trainModel(features, depen, indep)
+
+    unique = np.unique(indep)
+    mapper = {house: i for i, house in enumerate(unique)}
+    indep = np.vectorize(mapper.get)(indep)
+    onehot = np.eye(len(unique))[indep]
+
+    weights = trainModel(depen, onehot)
+
+    # weights = gradient_descent(depen, onehot)
 
     df = pd.DataFrame(weights, index=unique, columns=features+[label])
     df.to_csv("weights.csv")

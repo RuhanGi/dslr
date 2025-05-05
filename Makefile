@@ -59,7 +59,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "clean"
+	git commit -m "Rajs Function"
 	git push
 
 re: fclean all
