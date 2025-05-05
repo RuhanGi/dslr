@@ -29,7 +29,6 @@ def load(fil):
         print(RED + f"Error: {fil} not found!" + RESET)
         sys.exit(1)
 
-from sklearn.preprocessing import StandardScaler
 def parseInputs(df, features):
     missing_cols = set(features) - set(df.columns)
     if missing_cols:
@@ -39,10 +38,6 @@ def parseInputs(df, features):
     # ? BASTARDE
     df.fillna(0, inplace=True)
     inputs = df[features].to_numpy()
-
-    scaler = StandardScaler()
-    inputs = scaler.fit_transform(inputs)
-
     inputs = np.hstack((inputs, np.ones((inputs.shape[0], 1))))
     return inputs
 

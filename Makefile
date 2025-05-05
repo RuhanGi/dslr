@@ -62,7 +62,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "99% Finally"
+	git commit -m "Refined"
 	git push
 
 re: fclean all

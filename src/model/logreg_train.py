@@ -49,33 +49,34 @@ def epoch(weights, depen, onehot, learningRate):
     return categoricalCrossentropy(onehot, probs)
 
 def trainModel(depen, onehot):
-    # try:
-    means = np.average(depen, axis=0)
-    stds = np.std(depen, axis=0)
-    stds[stds == 0] = 1
-    depen = (depen - means) / stds    
+    try:
+        means = np.average(depen, axis=0)
+        stds = np.std(depen, axis=0)
+        stds[stds == 0] = 1
+        depen = (depen - means) / stds    
+        depen = np.hstack((depen, np.ones((depen.shape[0], 1))))
+        weights = np.zeros((onehot.shape[1], depen.shape[1]))
 
-    depen = np.hstack((depen, np.ones((depen.shape[0], 1))))
-    weights = np.zeros((onehot.shape[1], depen.shape[1]))
+        learningRate = 0.3
+        maxepochs = 10000
+        tolerance = 10**-4
+        for e in range(maxepochs):
+            prv = weights.copy()
+            loss = epoch(weights, depen, onehot, learningRate)
+            maxDiff = np.max(np.abs(weights-prv))
+            print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
+            if maxDiff < tolerance:
+                print()
+                break
+        print(GREEN + "\rModel Trained!" + (" " * 50) + RESET)
 
-    learningRate = 0.3
-    maxepochs = 100000
-    tolerance = 10**-4
+        weights[:, :-1], weights[:,-1] = weights[:, :-1] / stds, \
+            weights[:, -1] - np.sum(weights[:, :-1] * means / stds, axis=1)
 
-    for e in range(maxepochs):
-        prv = weights.copy()
-        loss = epoch(weights, depen, onehot, learningRate)
-        maxDiff = np.max(np.abs(weights-prv))
-        print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
-        if maxDiff < tolerance:
-            print()
-            break
-    print(GREEN + "\rModel Trained!" + (" " * 50) + RESET)
-
-    return weights
-    # except Exception as e:
-    #     print(RED + "Error: " + str(e) + RESET)
-    #     sys.exit(1)
+        return weights
+    except Exception as e:
+        print(RED + "Error: " + str(e) + RESET)
+        sys.exit(1)
 
 def main():
     if len(sys.argv) != 2:
