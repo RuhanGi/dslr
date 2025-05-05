@@ -52,6 +52,7 @@ gen:
 
 clean:
 	rm -rf houses.csv
+	find . -name .DS_Store -delete
 
 fclean: clean
 	rm -rf weights.csv
