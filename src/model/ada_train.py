@@ -64,10 +64,9 @@ def adagradEpoch(weights, inputs, onehot, learningRate, cache):
 def rmspropEpoch(weights, inputs, onehot, learningRate, velocity):
     probs = softmax(weights, inputs)
     grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
-
     decay, epsilon = 0.95, 10**-8
     velocity = velocity * decay + (1-decay) * grad**2
-    learningRate = 0.05 / (np.sqrt(velocity) + epsilon)
+    learningRate = learningRate / (np.sqrt(velocity) + epsilon)
     weights -= learningRate * grad
     return categoricalCrossentropy(onehot, probs), velocity
 
