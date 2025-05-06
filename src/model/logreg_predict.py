@@ -66,7 +66,7 @@ def main():
     df = pd.DataFrame({label: pred}, index=df.index)
     df.to_csv("houses.csv")
 
-    # getAccuracy()
+    getAccuracy()
 
 if __name__ == "__main__":
     main()

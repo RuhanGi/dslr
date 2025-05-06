@@ -55,29 +55,34 @@ def epoch(weights, inputs, onehot, learningRate):
 def adagradEpoch(weights, inputs, onehot, learningRate, cache):
     probs = softmax(weights, inputs)
     grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
+
     cache += grad**2
     epsilon = 10**-8
     learningRate = learningRate / (np.sqrt(cache) + epsilon)
+
     weights -= learningRate * grad
     return categoricalCrossentropy(onehot, probs), cache
 
 def rmspropEpoch(weights, inputs, onehot, learningRate, velocity):
     probs = softmax(weights, inputs)
     grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
+
     decay, epsilon = 0.95, 10**-8
     velocity = velocity * decay + (1-decay) * grad**2
     learningRate = learningRate / (np.sqrt(velocity) + epsilon)
+
     weights -= learningRate * grad
     return categoricalCrossentropy(onehot, probs), velocity
 
 def adamEpoch(weights, inputs, onehot, learningRate, velocity, momentum, t):
     probs = softmax(weights, inputs)
     grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
+
     decay1, decay2, epsilon = 0.9, 0.99, 10**-8
     momentum = decay1 * momentum + (1-decay1) * grad
     velocity = decay2 * velocity + (1-decay2) * grad**2
-    learningRate = learningRate / (np.sqrt(velocity / (1-decay2**t)) + epsilon)
-    weights -= learningRate * grad
+    weights -= learningRate * momentum / (np.sqrt(velocity) + epsilon)
+
     return categoricalCrossentropy(onehot, probs), velocity, momentum
 
 def trainModel(inputs, onehot, optimizer):

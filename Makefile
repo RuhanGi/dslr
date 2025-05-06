@@ -59,7 +59,7 @@ fclean: clean
 
 gpush: fclean
 	git add .
-	git commit -m "Optimization Algos"
+	git commit -m "Optimized"
 	git push
 
 re: fclean all
