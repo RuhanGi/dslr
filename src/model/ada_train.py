@@ -61,15 +61,15 @@ def adagradEpoch(weights, inputs, onehot, learningRate, cache):
     weights -= learningRate * grad
     return categoricalCrossentropy(onehot, probs), cache
 
-def rmspropEpoch(weights, inputs, onehot, learningRate, cache):
+def rmspropEpoch(weights, inputs, onehot, learningRate, velocity):
     probs = softmax(weights, inputs)
     grad = np.dot((probs - onehot).T, inputs) / inputs.shape[0]
 
     decay, epsilon = 0.95, 10**-8
-    cache = cache * decay + (1-decay) * grad**2
-    learningRate = 0.05 / (np.sqrt(cache) + epsilon)
+    velocity = velocity * decay + (1-decay) * grad**2
+    learningRate = 0.05 / (np.sqrt(velocity) + epsilon)
     weights -= learningRate * grad
-    return categoricalCrossentropy(onehot, probs), cache
+    return categoricalCrossentropy(onehot, probs), velocity
 
 def adamEpoch(weights, inputs, onehot, learningRate, velocity, momentum, t):
     probs = softmax(weights, inputs)
@@ -101,8 +101,7 @@ def trainModel(inputs, onehot, optimizer):
         start_time = time.time()
         while e < maxepochs:
             prv = weights.copy()
-            loss = epoch(weights, inputs, onehot, learningRate)
-
+            e += 1
             if optimizer == 'batch':
                 loss = epoch(weights, inputs, onehot, learningRate)
             elif optimizer == 'stochastic':
@@ -115,23 +114,19 @@ def trainModel(inputs, onehot, optimizer):
             elif optimizer == 'adagrad':
                 loss, cache = adagradEpoch(weights, inputs, onehot, learningRate, cache)
             elif optimizer == 'rmsprop':
-                loss, cache = rmspropEpoch(weights, inputs, onehot, learningRate, cache)
+                loss, cache = rmspropEpoch(weights, inputs, onehot, learningRate, velocity)
             elif optimizer == 'adam':
-                loss, velocity, momentum = adamEpoch(weights, inputs, onehot, learningRate, velocity, momentum, e+1)
+                loss, velocity, momentum = adamEpoch(weights, inputs, onehot, learningRate, velocity, momentum, e)
             else:
                 raise ValueError(f"Unknown optimizer: {optimizer}")
-            e += 1
             maxDiff = np.max(np.abs(weights-prv))
-            print(f"\rEpoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
+            print(f"\r[{optimizer.upper()}] Epoch [{e}/{maxepochs}]: Loss={loss:.6f}, Diff={maxDiff:.6f}", end="")
             if maxDiff < tolerance:
-                print()
                 break
 
         duration = time.time() - start_time
-        if e < maxepochs:
-            print(GREEN + f"\r[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!"+ RESET)
-        else:
-            print(YELLOW + f"\r[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!" + " "*30 + RESET)
+        print(GREEN if e < maxepochs else YELLOW)
+        print(f"[{optimizer.upper()}] Model Trained in {duration:.4f} seconds!"+ RESET)
         
         weights[:, :-1], weights[:,-1] = weights[:, :-1] / stds, \
             weights[:, -1] - np.sum(weights[:, :-1] * means / stds, axis=1)
